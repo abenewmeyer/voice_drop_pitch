@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoiceDrop Retention Audit — Darren Allridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0f0e0c;
+    --ink-mid: #4a4742;
+    --ink-light: #8a8680;
+    --paper: #f7f5f0;
+    --paper-warm: #efecea;
+    --paper-card: #faf9f7;
+    --accent: #c8401a;
+    --accent-light: #f5e8e3;
+    --accent-mid: #e07050;
+    --success: #1a6e3c;
+    --success-light: #e3f0e8;
+    --border: rgba(15,14,12,0.1);
+    --border-mid: rgba(15,14,12,0.18);
+    --serif: 'DM Serif Display', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 16px;
+    font-weight: 300;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    border-bottom: 0.5px solid var(--border-mid);
+    padding: 1.25rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--paper);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { font-family: var(--serif); font-size: 18px; color: var(--ink); letter-spacing: -0.01em; }
+  .logo span { color: var(--accent); font-style: italic; }
+  .header-tag { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); }
+
+  /* ── HERO ── */
+  .hero {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 5rem 2rem 3.5rem;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 1.5rem;
+  }
+  .hero-eyebrow::before { content: ''; display: block; width: 24px; height: 1px; background: var(--accent); }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(36px, 6vw, 58px);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 em { color: var(--accent); font-style: italic; }
+  .hero-sub {
+    font-size: 17px; color: var(--ink-mid); line-height: 1.7;
+    max-width: 600px; margin-bottom: 2rem; font-weight: 300;
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: 1.5rem;
+    font-size: 12px; color: var(--ink-light); font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+  .hero-meta span { display: flex; align-items: center; gap: 6px; }
+  .hero-meta span::before { content: '·'; color: var(--accent); font-size: 18px; line-height: 1; }
+  .hero-meta span:first-child::before { display: none; }
+
+  /* ── LAYOUT ── */
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-light); margin: 3rem 0 1.25rem;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 0.5px; background: var(--border-mid); }
+
+  /* ── CALCULATOR ── */
+  .calc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 0.5px solid var(--border-mid);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .calc-cell {
+    background: var(--paper-card);
+    padding: 1.25rem 1.5rem;
+  }
+  .calc-cell.wide { grid-column: 1 / -1; background: var(--paper-warm); }
+  .calc-cell label { display: block; font-size: 12px; color: var(--ink-light); margin-bottom: 0.5rem; font-weight: 400; letter-spacing: 0.02em; }
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  .slider-row input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 2px;
+    background: var(--border-mid); border-radius: 2px; outline: none;
+  }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+  .slider-val { font-size: 15px; font-weight: 500; color: var(--ink); min-width: 56px; text-align: right; }
+
+  .metrics-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px; background: var(--border); border: 0.5px solid var(--border-mid);
+    border-radius: 12px; overflow: hidden;
+  }
+  .metric-cell { background: var(--paper-card); padding: 1.25rem 1.5rem; }
+  .metric-cell.danger-cell { background: #fff8f6; }
+  .metric-cell.success-cell { background: #f5faf7; }
+  .metric-cell .m-label { font-size: 11px; color: var(--ink-light); margin-bottom: 0.5rem; font-weight: 400; letter-spacing: 0.02em; }
+  .metric-cell .m-val { font-size: 26px; font-weight: 500; color: var(--ink); font-family: var(--serif); letter-spacing: -0.02em; }
+  .metric-cell.danger-cell .m-val { color: var(--accent); }
+  .metric-cell.success-cell .m-val { color: var(--success); }
+  .metric-cell .m-sub { font-size: 11px; color: var(--ink-light); margin-top: 3px; }
+
+  /* ── PROBLEMS ── */
+  .problems-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+    background: var(--border); border: 0.5px solid var(--border-mid);
+    border-radius: 12px; overflow: hidden;
+  }
+  .problem-cell {
+    background: var(--paper-card); padding: 1.5rem;
+    cursor: pointer; transition: background 0.15s;
+    position: relative;
+  }
+  .problem-cell:hover { background: var(--paper-warm); }
+  .problem-cell.active { background: var(--accent-light); }
+  .problem-cell .p-num {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.6rem;
+  }
+  .problem-cell.active .p-num { color: var(--accent); }
+  .problem-cell .p-title {
+    font-family: var(--serif); font-size: 17px; color: var(--ink);
+    line-height: 1.2; margin-bottom: 0.5rem;
+  }
+  .problem-cell.active .p-title { color: var(--accent); }
+  .problem-cell .p-desc { font-size: 13px; color: var(--ink-mid); line-height: 1.6; font-weight: 300; }
+  .problem-detail-wrap {
+    border: 0.5px solid var(--border-mid); border-radius: 12px;
+    overflow: hidden; margin-top: 1px;
+    background: var(--paper-card);
+  }
+  .problem-detail { padding: 1.5rem; display: none; }
+  .problem-detail.active { display: block; }
+  .problem-detail .pd-head {
+    font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 0.75rem;
+  }
+  .problem-detail p { font-size: 14px; color: var(--ink-mid); line-height: 1.75; font-weight: 300; }
+  .problem-detail .signal-list { margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 8px; }
+  .signal-pill {
+    font-size: 12px; background: var(--paper-warm); border: 0.5px solid var(--border-mid);
+    border-radius: 20px; padding: 4px 12px; color: var(--ink-mid); font-weight: 400;
+  }
+  .teaser-line {
+    margin-top: 1rem; padding-top: 1rem; border-top: 0.5px solid var(--border);
+    font-size: 13px; color: var(--ink-light); font-style: italic;
+  }
+
+  /* ── ROADMAP ── */
+  .roadmap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 0.5px solid var(--border-mid); border-radius: 12px; overflow: hidden; }
+  .roadmap-phase {
+    background: var(--paper-card); padding: 1.25rem;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .roadmap-phase:hover { background: var(--paper-warm); }
+  .roadmap-phase.active { background: #f5faf7; border-bottom: 2px solid var(--success); }
+  .r-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.4rem; }
+  .roadmap-phase.active .r-label { color: var(--success); }
+  .r-title { font-family: var(--serif); font-size: 16px; color: var(--ink); margin-bottom: 0.3rem; }
+  .roadmap-phase.active .r-title { color: var(--success); }
+  .r-time { font-size: 11px; color: var(--ink-light); }
+  .roadmap-detail-wrap {
+    border: 0.5px solid var(--border-mid); border-top: none;
+    background: #f5faf7; border-radius: 0 0 12px 12px; overflow: hidden;
+  }
+  .roadmap-detail { padding: 1.5rem; display: none; }
+  .roadmap-detail.active { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .rd-col .rd-head { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--success); margin-bottom: 0.6rem; }
+  .rd-col p { font-size: 13px; color: var(--ink-mid); line-height: 1.7; font-weight: 300; }
+  .rd-col .deliverable { margin-top: 0.75rem; padding: 0.75rem 1rem; background: white; border: 0.5px solid var(--border-mid); border-radius: 8px; font-size: 12px; color: var(--ink-mid); font-weight: 400; }
+  .rd-col .deliverable::before { content: '↳ '; color: var(--success); font-weight: 500; }
+
+  /* ── WHY THIS ── */
+  .why-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); border: 0.5px solid var(--border-mid); border-radius: 12px; overflow: hidden; }
+  .why-cell { background: var(--paper-card); padding: 1.5rem; }
+  .why-num { font-family: var(--serif); font-size: 36px; color: var(--border-mid); line-height: 1; margin-bottom: 0.75rem; }
+  .why-title { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; }
+  .why-body { font-size: 13px; color: var(--ink-mid); line-height: 1.65; font-weight: 300; }
+
+  /* ── VIDEO NOTE ── */
+  .video-note {
+    border-left: 3px solid var(--accent);
+    padding: 1.25rem 1.5rem;
+    background: var(--accent-light);
+    border-radius: 0 8px 8px 0;
+    margin: 2rem 0;
+  }
+  .video-note .vn-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; }
+  .video-note p { font-size: 14px; color: var(--ink-mid); line-height: 1.7; font-weight: 300; }
+
+  /* ── FOOTER ── */
+  .site-footer {
+    border-top: 0.5px solid var(--border-mid);
+    padding: 2rem;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-light);
+    margin-top: 2rem;
+  }
+  .site-footer a { color: var(--accent); text-decoration: none; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .calc-grid, .problems-grid, .why-grid { grid-template-columns: 1fr; }
+    .roadmap { grid-template-columns: 1fr 1fr; }
+    .roadmap-detail.active { grid-template-columns: 1fr; }
+    .calc-cell.wide { grid-column: 1; }
+    .hero { padding: 3rem 1.25rem 2.5rem; }
+    .content { padding: 0 1.25rem 3rem; }
+    .site-header { padding: 1rem 1.25rem; }
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .hero, .content > * { animation: fadeUp 0.5s ease both; }
+  .content > *:nth-child(1) { animation-delay: 0.05s; }
+  .content > *:nth-child(2) { animation-delay: 0.1s; }
+  .content > *:nth-child(3) { animation-delay: 0.15s; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">Darren <span>Allridge</span></div>
+  <div class="header-tag">Retention Strategy Audit · VoiceDrop</div>
+</header>
+
+<section class="hero">
+  <div class="hero-eyebrow">Retention Specialist Consultant — Application</div>
+  <h1>Your customers are deciding<br>whether to stay. <em>Right now.</em></h1>
+  <p class="hero-sub">This brief replaces a Loom video. It demonstrates platform knowledge, a retention diagnostic framework, and the consulting approach I'd bring to your team — built specifically around VoiceDrop's market and customer profile.</p>
+  <div class="hero-meta">
+    <span>Darren Allridge</span>
+    <span>20+ years enterprise revenue operations</span>
+    <span>FINRA Series 7 &amp; 66</span>
+    <span>Real estate · Finance · Insurance</span>
+  </div>
+</section>
+
+<div class="content">
+
+  <!-- CALCULATOR -->
+  <div class="section-label">Churn impact — your real numbers</div>
+
+  <div class="calc-grid">
+    <div class="calc-cell">
+      <label>Monthly active subscribers</label>
+      <div class="slider-row">
+        <input type="range" min="100" max="5000" step="50" value="1000" id="subs" oninput="calc()">
+        <span class="slider-val" id="subs-out">1,000</span>
+      </div>
+    </div>
+    <div class="calc-cell">
+      <label>Avg monthly revenue per account</label>
+      <div class="slider-row">
+        <input type="range" min="49" max="499" step="10" value="99" id="arpu" oninput="calc()">
+        <span class="slider-val" id="arpu-out">$99</span>
+      </div>
+    </div>
+    <div class="calc-cell">
+      <label>Current monthly churn rate</label>
+      <div class="slider-row">
+        <input type="range" min="1" max="15" step="0.5" value="5" id="churn" oninput="calc()">
+        <span class="slider-val" id="churn-out">5.0%</span>
+      </div>
+    </div>
+    <div class="calc-cell">
+      <label>Recoverable with structured CS (est.)</label>
+      <div class="slider-row">
+        <input type="range" min="10" max="60" step="5" value="30" id="recover" oninput="calc()">
+        <span class="slider-val" id="recover-out">30%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="metrics-row" style="margin-top:1px; border-radius: 0 0 12px 12px; margin-bottom: 0.5rem;">
+    <div class="metric-cell danger-cell">
+      <div class="m-label">Monthly revenue lost to churn</div>
+      <div class="m-val" id="m-lost">$4,950</div>
+      <div class="m-sub">every single month</div>
+    </div>
+    <div class="metric-cell danger-cell">
+      <div class="m-label">Annualized churn cost</div>
+      <div class="m-val" id="m-annual">$59,400</div>
+      <div class="m-sub">walking out the door</div>
+    </div>
+    <div class="metric-cell success-cell">
+      <div class="m-label">Recoverable monthly revenue</div>
+      <div class="m-val" id="m-recover">$1,485</div>
+      <div class="m-sub">with proactive CS workflows</div>
+    </div>
+    <div class="metric-cell success-cell">
+      <div class="m-label">12-month recovery value</div>
+      <div class="m-val" id="m-recover12">$17,820</div>
+      <div class="m-sub">ROI on this engagement</div>
+    </div>
+  </div>
+  <p style="font-size:11px; color: var(--ink-light); margin-top: 0.5rem; font-style: italic;">Adjust the sliders to your real numbers. The recovery estimate is conservative — 30% is a floor, not a ceiling, for structured intervention.</p>
+
+  <!-- PROBLEMS -->
+  <div class="section-label">Where churn is actually coming from</div>
+  <p style="font-size: 14px; color: var(--ink-mid); line-height: 1.7; margin-bottom: 1.25rem; font-weight: 300;">Based on VoiceDrop's market — real estate, financial services, and insurance — there are four failure points where customers disengage. The methodology to address each one is what you'd be engaging me to build. Click each to see the diagnostic framing.</p>
+
+  <div class="problems-grid" id="problems-grid">
+    <div class="problem-cell active" onclick="selectProblem(0)" id="prob-0">
+      <div class="p-num">Problem 01</div>
+      <div class="p-title">Silent disengagement before the decision</div>
+      <div class="p-desc">Customers don't cancel the day they lose faith. They go quiet weeks earlier — and most CS teams have no system to catch it.</div>
+    </div>
+    <div class="problem-cell" onclick="selectProblem(1)" id="prob-1">
+      <div class="p-num">Problem 02</div>
+      <div class="p-title">Cancellation conversations with no playbook</div>
+      <div class="p-desc">When a customer says "I want to cancel," the response is improvised. Improvised conversations lose deals that structure would have saved.</div>
+    </div>
+    <div class="problem-cell" onclick="selectProblem(2)" id="prob-2">
+      <div class="p-num">Problem 03</div>
+      <div class="p-title">Revenue left on the table with power users</div>
+      <div class="p-desc">Your highest-engagement customers are signaling expansion readiness. Without a trigger-based upsell process, that signal expires unread.</div>
+    </div>
+    <div class="problem-cell" onclick="selectProblem(3)" id="prob-3">
+      <div class="p-num">Problem 04</div>
+      <div class="p-title">Enterprise accounts managed like standard ones</div>
+      <div class="p-desc">A high-value account churning carries 10x the revenue impact of a standard account. It rarely gets 10x the attention until it's too late.</div>
+    </div>
+  </div>
+
+  <div class="problem-detail-wrap">
+    <div class="problem-detail active" id="pd-0">
+      <div class="pd-head">What I'd diagnose</div>
+      <p>In VoiceDrop's context, disengagement has specific behavioral signatures. The customers most likely to churn in the next 30 days are producing detectable signals right now — in your usage data, your billing system, and your support logs. The question isn't whether the signal exists. It's whether you have a framework to read it and a defined response protocol when it fires.</p>
+      <div class="signal-list">
+        <span class="signal-pill">Campaign frequency</span>
+        <span class="signal-pill">Login recency</span>
+        <span class="signal-pill">Support volume</span>
+        <span class="signal-pill">Billing friction</span>
+        <span class="signal-pill">Feature adoption</span>
+      </div>
+      <div class="teaser-line">The specific thresholds, scoring logic, and response workflow are what the engagement delivers.</div>
+    </div>
+    <div class="problem-detail" id="pd-1">
+      <div class="pd-head">What I'd diagnose</div>
+      <p>When a VoiceDrop customer says they want to cancel, the real objection is almost never the one they lead with. It's usually a use-case fit problem that surfaced as a value perception problem. The account manager needs a conversation structure — not a script — that gets to the real objection within the first 90 seconds and offers a credible response path. Right now, that structure doesn't exist. Every rep improvises, and the outcomes vary wildly.</p>
+      <div class="signal-list">
+        <span class="signal-pill">Objection taxonomy</span>
+        <span class="signal-pill">Recovery sequencing</span>
+        <span class="signal-pill">Concession authority</span>
+      </div>
+      <div class="teaser-line">The structured playbook, conversation frameworks, and escalation criteria are what the engagement delivers.</div>
+    </div>
+    <div class="problem-detail" id="pd-2">
+      <div class="pd-head">What I'd diagnose</div>
+      <p>VoiceDrop customers who are running campaigns at high frequency and have already explored integrations are telling you something: the product works for them. They are also, almost certainly, underutilizing capabilities that would make the next pricing tier an obvious decision — not a sales conversation. The gap is that no one is connecting their behavior data to a defined upsell conversation. The trigger exists. The outreach protocol doesn't.</p>
+      <div class="signal-list">
+        <span class="signal-pill">Expansion triggers</span>
+        <span class="signal-pill">Tier migration logic</span>
+        <span class="signal-pill">Value proof anchors</span>
+      </div>
+      <div class="teaser-line">The trigger definitions, conversation structure, and proof framework are what the engagement delivers.</div>
+    </div>
+    <div class="problem-detail" id="pd-3">
+      <div class="pd-head">What I'd diagnose</div>
+      <p>Enterprise accounts in regulated industries — the financial services and real estate firms that are VoiceDrop's highest-value customers — churn for reasons that are often political before they're operational. A personnel change, a compliance review, or a vendor audit can put a healthy account at risk overnight. Standard CS response protocols are too slow and too generic for accounts where one cancellation can mean five figures of ARR. The protocol needs to be asymmetric — faster, higher-touch, with different authority levels.</p>
+      <div class="signal-list">
+        <span class="signal-pill">Stakeholder mapping</span>
+        <span class="signal-pill">Political risk signals</span>
+        <span class="signal-pill">Escalation authority</span>
+      </div>
+      <div class="teaser-line">The enterprise protocol, escalation matrix, and high-value account SOP are what the engagement delivers.</div>
+    </div>
+  </div>
+
+  <!-- ROADMAP -->
+  <div class="section-label">90-day engagement structure</div>
+
+  <div class="roadmap" id="roadmap">
+    <div class="roadmap-phase active" onclick="selectPhase(0)" id="rp-0">
+      <div class="r-label">Phase 1</div>
+      <div class="r-title">Diagnose</div>
+      <div class="r-time">Days 1 – 21</div>
+    </div>
+    <div class="roadmap-phase" onclick="selectPhase(1)" id="rp-1">
+      <div class="r-label">Phase 2</div>
+      <div class="r-title">Design</div>
+      <div class="r-time">Days 22 – 50</div>
+    </div>
+    <div class="roadmap-phase" onclick="selectPhase(2)" id="rp-2">
+      <div class="r-label">Phase 3</div>
+      <div class="r-title">Deploy</div>
+      <div class="r-time">Days 51 – 72</div>
+    </div>
+    <div class="roadmap-phase" onclick="selectPhase(3)" id="rp-3">
+      <div class="r-label">Phase 4</div>
+      <div class="r-title">Measure</div>
+      <div class="r-time">Days 73 – 90</div>
+    </div>
+  </div>
+
+  <div class="roadmap-detail-wrap">
+    <div class="roadmap-detail active" id="rd-0">
+      <div class="rd-col">
+        <div class="rd-head">What happens</div>
+        <p>A structured audit of your current churn data, CS team touchpoints, cancellation reasons, and account lifecycle. I interview key stakeholders, shadow existing workflows, and map where the gaps are before building anything.</p>
+        <p style="margin-top:0.75rem;">The methodology I use here is shaped by 20 years of diagnosing revenue bottlenecks in regulated environments. The specifics of how I run it are part of the engagement.</p>
+      </div>
+      <div class="rd-col">
+        <div class="rd-head">What you receive</div>
+        <div class="deliverable">Written diagnostic report with prioritized churn drivers</div>
+        <div class="deliverable" style="margin-top:8px;">Baseline churn cost model using your actual numbers</div>
+        <div class="deliverable" style="margin-top:8px;">Ranked intervention roadmap for Phases 2–4</div>
+      </div>
+    </div>
+    <div class="roadmap-detail" id="rd-1">
+      <div class="rd-col">
+        <div class="rd-head">What happens</div>
+        <p>Using the diagnostic findings, I design the SOP library: the early warning system, recovery playbook, upsell trigger map, and enterprise escalation protocol. Each one is pressure-tested against real account scenarios with your CS leadership before it's finalized.</p>
+        <p style="margin-top:0.75rem;">The frameworks, conversation structures, and decision logic are the core deliverable of this phase — and they stay with your team permanently.</p>
+      </div>
+      <div class="rd-col">
+        <div class="rd-head">What you receive</div>
+        <div class="deliverable">Four complete SOPs in your team's preferred format</div>
+        <div class="deliverable" style="margin-top:8px;">Conversation frameworks for each customer scenario</div>
+        <div class="deliverable" style="margin-top:8px;">Decision trees and escalation criteria for AMs</div>
+      </div>
+    </div>
+    <div class="roadmap-detail" id="rd-2">
+      <div class="rd-col">
+        <div class="rd-head">What happens</div>
+        <p>Live workshops with the account management team to install the new workflows. I shadow real customer interactions to refine language based on actual friction — not theoretical scenarios. CRM integration points are identified and mapped.</p>
+      </div>
+      <div class="rd-col">
+        <div class="rd-head">What you receive</div>
+        <div class="deliverable">Trained AM team with confidence in new workflows</div>
+        <div class="deliverable" style="margin-top:8px;">30-day measurement baseline established</div>
+        <div class="deliverable" style="margin-top:8px;">CRM integration specification</div>
+      </div>
+    </div>
+    <div class="roadmap-detail" id="rd-3">
+      <div class="rd-col">
+        <div class="rd-head">What happens</div>
+        <p>Early data review: recovery rate on at-risk accounts, upsell conversion from triggered outreach, and AM adoption metrics. One focused revision sprint on the lowest-performing SOP. Final recommendations for ongoing cadence.</p>
+      </div>
+      <div class="rd-col">
+        <div class="rd-head">What you receive</div>
+        <div class="deliverable">Optimization report with 6-month retention projections</div>
+        <div class="deliverable" style="margin-top:8px;">Revised SOP based on live performance data</div>
+        <div class="deliverable" style="margin-top:8px;">Recommended ongoing engagement structure</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHY DARREN -->
+  <div class="section-label">Why this background fits this role</div>
+  <div class="why-grid">
+    <div class="why-cell">
+      <div class="why-num">20</div>
+      <div class="why-title">Years in regulated revenue environments</div>
+      <div class="why-body">Fidelity, TD Ameritrade, Allstate, UBS — FINRA Series 7 &amp; 66. I built and managed client relationships in industries where churn means compliance exposure and trust recovery is measured in years, not quarters.</div>
+    </div>
+    <div class="why-cell">
+      <div class="why-num">↑</div>
+      <div class="why-title">I understand VoiceDrop's customers</div>
+      <div class="why-body">Real estate agents, financial advisors, and insurance producers are my native environment. I know why they buy outreach tools, what makes them feel underserved, and what language lands in a retention conversation with them.</div>
+    </div>
+    <div class="why-cell">
+      <div class="why-num">∞</div>
+      <div class="why-title">I build the systems too</div>
+      <div class="why-body">As an AI systems architect, I don't just write SOPs — I can spec the automation layer that runs them. If VoiceDrop's CS workflows need CRM triggers, behavioral scoring, or automated outreach sequences, that's a natural extension of this engagement.</div>
+    </div>
+  </div>
+
+  <!-- VIDEO NOTE -->
+  <div class="video-note">
+    <div class="vn-label">On the Loom video requirement</div>
+    <p>The video requirement exists to filter for candidates who visited the platform and can speak to it with authority. This brief satisfies that intent and goes further — it's built around VoiceDrop's specific market, customer profile, and revenue model. I'm also happy to do a live video call at your convenience, which gives you a real conversation rather than a polished recording. I build AI voice systems professionally, so I prefer demonstrating thinking through work product.</p>
+  </div>
+
+</div><!-- /content -->
+
+<footer class="site-footer">
+  Prepared by <strong>Darren Allridge</strong> &nbsp;·&nbsp; Available for a live call at your convenience &nbsp;·&nbsp; Connect via Upwork to schedule
+</footer>
+
+<script>
+function calc() {
+  const subs = parseInt(document.getElementById('subs').value);
+  const arpu = parseInt(document.getElementById('arpu').value);
+  const churn = parseFloat(document.getElementById('churn').value) / 100;
+  const recover = parseFloat(document.getElementById('recover').value) / 100;
+  document.getElementById('subs-out').textContent = subs.toLocaleString();
+  document.getElementById('arpu-out').textContent = '$' + arpu;
+  document.getElementById('churn-out').textContent = (churn * 100).toFixed(1) + '%';
+  document.getElementById('recover-out').textContent = Math.round(recover * 100) + '%';
+  const lost = Math.round(subs * churn * arpu);
+  document.getElementById('m-lost').textContent = '$' + lost.toLocaleString();
+  document.getElementById('m-annual').textContent = '$' + (lost * 12).toLocaleString();
+  const rec = Math.round(lost * recover);
+  document.getElementById('m-recover').textContent = '$' + rec.toLocaleString();
+  document.getElementById('m-recover12').textContent = '$' + (rec * 12).toLocaleString();
+}
+
+function selectProblem(i) {
+  for (let j = 0; j < 4; j++) {
+    document.getElementById('prob-' + j).classList.toggle('active', j === i);
+    document.getElementById('pd-' + j).classList.toggle('active', j === i);
+  }
+}
+
+function selectPhase(i) {
+  for (let j = 0; j < 4; j++) {
+    document.getElementById('rp-' + j).classList.toggle('active', j === i);
+    document.getElementById('rd-' + j).classList.toggle('active', j === i);
+  }
+}
+
+calc();
+</script>
+</body>
+</html>
